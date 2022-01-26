@@ -40,9 +40,10 @@ impl<T> List<T> {
     }
 }
 
-//IntoIter   xx:不会实现
-//IterMut    xx:不会实现
+//IntoIter   xx:不能实现
+//IterMut    xx:不能实现
 //问题：为什么我们在此处只实现Iter？
+//答：Rc<T> 是不可变引用，可变引用与不可变引用不能同时存在。
 
 //实现Iter
 pub struct Iter<'a, T> {
@@ -70,7 +71,7 @@ impl<T> Drop for List<T> {
     fn drop(&mut self) {
         let mut head = self.head.take();
         while let Some(node) = head {
-            if let Ok(mut node) = Rc::try_unwrap(node) { //如果强引用计数为0
+            if let Ok(mut node) = Rc::try_unwrap(node) { //如果强引用计数为1
                 head = node.next.take();
             } else {
                 break;
@@ -88,9 +89,6 @@ mod tests {
         let mut list = List::new();
         assert_eq!(list.head(), None);
 
-        //let mut list = list.append(1);
-        //let mut list = list.append(2);
-        //let list = list.append(3);
         let list = list.append(1).append(2).append(3);
         assert_eq!(list.head(), Some(&3));
 
