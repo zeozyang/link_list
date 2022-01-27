@@ -1,18 +1,24 @@
 use std::rc::Rc;
 use std::cell::{Ref, RefMut, RefCell};
 
-///使用 RefCell<T> 在运行时记录借用信息
+///# 使用 RefCell<T> 在运行时记录借用信息
+///
 /// • 两个方法（安全接口）：
+///
 ///     – borrow 方法
 ///         • 返回智能指针 Ref<T>，它实现了 Deref
 ///     – borrow_mut 方法
 ///         • 返回智能指针 RefMut<T>，它实现了 Deref
+///
 /// • RefCell<T> 会记录当前存在多少个活跃的 Ref<T> 和 RefMut<T> 智能指针：
+///
 ///     – 每次调用 borrow：不可变借用计数加 1
 ///     – 任何一个 Ref<T> 的值离开作用域被释放时：不可变借用计数减 1
 ///     – 每次调用 borrow_mut：可变借用计数加 1
 ///     – 任何一个 RefMut<T> 的值离开作用域被释放时：可变借用计数减 1
+///
 /// • 以此技术来维护借用检查规则：
+///
 ///     – 任何一个给定时间里，只允许拥有多个不可变借用或一个可变借用。
 
 pub struct List<T> {
@@ -40,18 +46,20 @@ impl<T> Node<T> {
 
 impl<T> List<T> {
     pub fn new() -> Self {
-        List { head: None, tail: None }
+        List {
+            head: None,
+            tail: None,
+        }
     }
 
     pub fn push_front(&mut self, elem: T) {
         let node = Node::new(elem);
         match self.head.take() {
             Some(head) => {
-                head.borrow_mut().prev = Some(node.clone());
-                node.borrow_mut().next = Some(head);
+                head.borrow_mut().prev = Some(node.clone()); //头节点的上个节点指向新节点
+                node.borrow_mut().next = Some(head); //新节点的下个节点指向头节点
                 self.head = Some(node);
             }
-
             None => {
                 self.tail = Some(node.clone());
                 self.head = Some(node);
@@ -67,7 +75,6 @@ impl<T> List<T> {
                 node.borrow_mut().prev = Some(tail);
                 self.tail = Some(node);
             }
-
             None => {
                 self.head = Some(node.clone());
                 self.tail = Some(node);
@@ -75,19 +82,22 @@ impl<T> List<T> {
         }
     }
 
-    pub fn pop_front(&mut self) -> Option<T> {
-        self.head.take().map(|node| {
-            match node.borrow_mut().next.take() {
+    pub fn pop_front(&mut self) -> Option<T> { //                           List -> Node <=> Next
+        self.head.take().map(|node| { //取出头节点node,  List    Node <=> Next
+            match node.borrow_mut().next.take() { //取出头节点的下一个节点,     List    Node <-  Next
                 Some(next) => {
-                    next.borrow_mut().prev.take();
-                    self.head = Some(next);
+                    next.borrow_mut().prev.take(); //                       List    Node    Next
+                    self.head = Some(next); //                              List ->  Next
                 }
                 None => {
                     self.tail.take();
                 }
             }
-
-            Rc::try_unwrap(node).ok().unwrap().into_inner().elem //对照手册好好理解
+            Rc::try_unwrap(node) //rc变result。Returns the inner value, if the Rc has exactly one strong reference.
+                .ok()           //result变option。Converts from Result<T, E> to Option<T>.
+                .unwrap()       //拆包option，得到refcell。在确认Option不为None的情况下，可以用unwrap方法拆解出其中的值，并获取值的所有权。
+                .into_inner()   //拆包refcell，得到node。Consumes the RefCell, returning the wrapped value.
+                .elem           //node.elem
         })
     }
 
@@ -106,11 +116,8 @@ impl<T> List<T> {
         })
     }
 
-    //pub fn peek_front(&self) -> Option<&T> {
     pub fn peek_front(&self) -> Option<Ref<T>> {
         self.head.as_ref().map(|node| {
-            //&node.borrow().elem
-            //node.borrow()
             Ref::map(node.borrow(), |node| &node.elem)
         })
     }
@@ -158,6 +165,7 @@ impl<T> DoubleEndedIterator for IntoIter<T> {
         self.0.pop_back()
     }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -271,8 +279,7 @@ fn main() {
     ///Cell::from_mut, 该方法将&mut T转为 &Cell<T>
     ///Cell::as_slice_of_cells，该方法将 &Cell<[T]>转为 &[Cell<T>]
     fn retain_even(nums: &mut Vec<i32>) {
-        let slice = Cell::from_mut(&mut nums[..])
-            .as_slice_of_cells();
+        let slice = Cell::from_mut(&mut nums[..]).as_slice_of_cells();
 
         let mut i = 0;
         for num in slice.iter().filter(|num| is_even(num.get())) {
@@ -282,4 +289,10 @@ fn main() {
 
         nums.truncate(i);
     }
+
+    let c = RefCell::new((5, 'b'));
+    let b1: Ref<(u32, char)> = c.borrow();
+    let b2: Ref<u32> = Ref::map(b1, |t| &t.0);
+    assert_eq!(*b2, 5);
+    println!("{:?}", c);
 }
