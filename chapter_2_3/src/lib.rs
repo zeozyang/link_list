@@ -32,11 +32,10 @@ impl<T> List<T> {
     }
 
     ///在链表头加一个节点
-    pub fn push(&mut self, elem: T) { //不管方法签名中是 &self 还是 &mut self，函数体中的self都是Self的实例而不是地址。
+    pub fn push(&mut self, elem: T) {
         let node = Box::new(Node {
             elem,
-            //take()的函数签名：pub const fn take(&mut self) -> Option<T>。self可以作为&mut self，&self的参数。
-            next: self.head.take(),
+            next: self.head.take(), //点运算符将执行很多类型转换的魔法：它将执行自动引用、自动去引用和强制转换，直到类型匹配。
         });
         self.head = Some(node);
     }
@@ -51,7 +50,6 @@ impl<T> List<T> {
     ///查看链表头节点的值，以引用的方式
     pub fn peek(&self) -> Option<&T> {
         self.head.as_ref().map(|node| {
-            print_type_of(node); //Box<Node<T>>，这里发生了自动解引用
             &node.elem
         })
     }
