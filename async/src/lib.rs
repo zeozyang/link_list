@@ -71,7 +71,7 @@ mod tests {
         // 创建线程，并发送消息
         thread::spawn(move || {
             // 发送一个数字1, send方法返回Result<T,E>，通过unwrap进行快速错误处理
-            tx.send(1).unwrap(); //.sent()会取得所有权，但此处i32实现了copy。
+            tx.send(1).unwrap(); //.sent()会取得所发送变量的所有权，但此处i32实现了copy。
         });
 
         // 在主线程中接收子线程发送的消息并输出
@@ -152,6 +152,7 @@ mod tests {
     use std::sync::Arc;
 
     ///## 多线程中使用Mutex
+    /// Rc<T>/RefCell<T>用于单线程内部可变性， Arc<T>/Mutext<T>用于多线程内部可变性。
     #[test]
     fn _arc_mutex() {
         // 通过`Arc`实现`Mutex`的多所有权
@@ -175,4 +176,12 @@ mod tests {
         // 输出最终的计数结果
         println!("Result: {}", *counter.lock().unwrap());
     }
+
+    ///实现Send的类型可以在线程间安全的传递其所有权
+    ///
+    ///实现了Sync的类型可以在线程间安全的共享(通过引用)
+    ///
+    ///这里还有一个潜在的依赖：一个类型要在线程间安全的共享的前提是，指向它的引用必须能在线程间传递。因为如果引用都不能被传递，我们就无法在多个线程间使用引用去访问同一个数据了。
+    ///
+    ///由上可知，若类型T的引用&T是Send，则T是Sync。
 }
