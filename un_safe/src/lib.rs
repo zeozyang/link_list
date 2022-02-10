@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+mod un_safe {
     /// # Unsafe 超能力
     /// ## 使用 unsafe 关键字来切换到 unsafe Rust，开启一个块，里面放着 unsafe 代码
     ///
@@ -99,5 +99,84 @@ mod tests {
         pub extern "C" fn call_from_c() {
             println!("Just called a Rust function from C!");
         }
+    }
+}
+
+
+#[cfg(test)]
+mod data_layout {
+    use std::mem;
+
+    ///# rust中的数据布局
+
+    ///## 动态尺寸类型DST - slice
+    #[test]
+    fn slice_layout() {
+        struct A<'a> {
+            _a: i32,
+            _b: &'a [u8], //_b是数组切片
+        }
+        let array = [1; 10];
+        let s = &array[..]; //s是数组切片
+
+        println!("s size = {}", mem::size_of_val(s));   //4 * 10 = 40 bytes
+        println!("&s size = {}", mem::size_of_val(&s)); //8 * 2 = 16，&s是切片结构体本身，是个胖指针，里面有两个字段，一个是array的引用，一个是切片的长度
+        println!("&i32 size = {}", mem::size_of::<&i32>()); //8，我是64位的电脑，所以引用的尺寸就是8bytes
+        println!("&i64 size = {}", mem::size_of::<&i64>()); //8
+        println!("i32 size = {}", mem::size_of::<i32>());   //4
+        println!("i64 size = {}", mem::size_of::<i64>());   //8
+        println!("A size = {}", mem::size_of::<A>());   //8 + 16 = 24，i32占4bytes对齐为8bytes，切片占16bytes
+    }
+
+    ///## 动态尺寸类型 - trait object
+    #[test]
+    fn trait_objects_layout() {
+        trait MyTrait {
+            fn test();
+        }
+        // 下面两行会报错
+        // println!("MyTrait size = {}", mem::size_of::<dyn MyTrait>());
+        // println!("&MyTrait size = {}", mem::size_of::<&dyn MyTrait>());
+    }
+
+    ///## 零大小类型 (ZSTs)
+    #[test]
+    fn zst() {
+        struct Nothing; // 无字段意味着没有大小
+
+        // 所有字段都无大小意味着整个结构体无大小
+        struct LotsOfNothing {
+            foo: Nothing,
+            qux: (),
+            // 空元组无大小
+            baz: [u8; 0], // 空数组无大小
+        }
+
+        println!("Nothing size = {}", mem::size_of::<Nothing>());
+        println!("LotsOfNothing size = {}", mem::size_of::<LotsOfNothing>());
+    }
+}
+
+#[cfg(test)]
+mod hrtb {
+    struct Closure<F> {
+        data: (u8, u16),
+        func: F,
+    }
+
+    impl<F> Closure<F>
+        where for<'a> F: Fn(&'a (u8, u16)) -> &'a u8, //在Fn trait 之外，我们遇到 HRTB 的地方不多，即使是那些地方，我们也有这个很好的魔法糖来处理普通的情况。
+    {
+        fn call(&self) -> &u8 {
+            (self.func)(&self.data)
+        }
+    }
+
+    fn do_it(data: &(u8, u16)) -> &u8 { &data.0 }
+
+    #[test]
+    fn main() {
+        let clo = Closure { data: (0, 1), func: do_it };
+        println!("{}", clo.call());
     }
 }
