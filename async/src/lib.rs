@@ -177,6 +177,7 @@ mod tests {
         println!("Result: {}", *counter.lock().unwrap());
     }
 
+    ///# Send与Sync
     ///实现Send的类型可以在线程间安全的传递其所有权
     ///
     ///实现了Sync的类型可以在线程间安全的共享(通过引用)
