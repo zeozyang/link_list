@@ -6,7 +6,7 @@ use futures::executor::block_on;
 async fn hello_world() {
     // 在async fn函数中使用.await可以等待另一个异步调用的完成。
     // 但是与block_on不同，.await并不会阻塞当前的线程，而是异步的等待Future A的完成，(这时会开始运行Future A)
-    // 在等待的过程中，该线程还可以继续执行其它的Future B，最终实现了并发处理的效果。
+    // 在等待的过程中，该线程还可以继续执行其它的Future B(注意只执行Future，而不是其他代码)，最终实现了并发处理的效果。
     hello_cat().await;
     println!("hello, world!");
 }
