@@ -43,3 +43,29 @@ impl Future for TimerFuture {
 }
 
 ///# 接下来还有，但我觉得不重要，就没写
+
+use std::fs::File;
+use std::io;
+
+#[derive(Debug)]
+struct AppError {
+    kind: String,    // 错误类型
+    message: String, // 错误信息
+}
+
+// 为 AppError 实现 std::convert::From 特征，由于 From 包含在 std::prelude 中，因此可以直接简化引入。
+// 实现 From<io::Error> 意味着我们可以将 io::Error 错误转换成自定义的 AppError 错误
+impl From<io::Error> for AppError {
+    fn from(error: io::Error) -> Self {
+        AppError {
+            kind: String::from("io"),
+            message: error.to_string(),
+        }
+    }
+}
+
+fn main() -> Result<(), AppError> {
+    let file = File::open("nonexistent_file.txt")?;
+
+    Ok(())
+}
